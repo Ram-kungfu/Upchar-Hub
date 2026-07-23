@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upchar Hub: Global Expert Digital Doctor</title>
-    <!-- Google Gen AI SDK लोड करने के लिए -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,6 +38,7 @@
             font-weight: bold;
             margin-left: 5px;
         }
+        /* कीपैड से बॉक्स छिपने से बचाने के लिए इनपुट बॉक्स को ऊपर रखा गया है */
         #input-container {
             display: flex;
             padding: 10px;
@@ -156,14 +149,11 @@
 
 <div class="footer-note">🚨 आपातकाल में 108/102 डायल करें</div>
 
-<script type="module">
-    import { GoogleGenAI } from "@google/genai";
-
-    // आपकी Upchar Hub वाली सुरक्षित और वर्किंग फ्री API Key
+<script>
+    // आपकी बिल्कुल सही और वेरीफाइड Gemini API Key
     const API_KEY = "AIzaSyAUeqx_K5fB3A17rWE-qRCFKvBLGZPsUq8"; 
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-    const systemInstruction = `तुम 'Upchar Hub' के एक विशेषज्ञ डिजिटल डॉक्टर हो। तुम्हारा स्वभाव बहुत ही धैर्यवान, विनम्र और मददगार है। 
+    const systemPrompt = `तुम 'Upchar Hub' के एक विशेषज्ञ डिजिटल डॉक्टर हो। तुम्हारा स्वभाव बहुत ही धैर्यवान, विनम्र और मददगार है। 
     जब कोई मरीज़ तुमसे बात करे, तो इन चरणों का पालन करो:
     1. लक्षणों का विश्लेषण: मरीज़ के लक्षणों को ध्यान से सुनो और ज़रूरत पड़ने पर 1-2 और सवाल पूछो।
     2. संभावित बीमारी: लक्षणों के आधार पर बीमारी का नाम बताओ।
@@ -176,7 +166,7 @@
     let chatHistory = [];
 
     window.onload = function() {
-        const savedHistory = localStorage.getItem('upchar_hub_history_v5');
+        const savedHistory = localStorage.getItem('upchar_hub_history_v6');
         if (savedHistory) {
             chatHistory = JSON.parse(savedHistory);
             const chatContainer = document.getElementById('chat-container');
@@ -203,7 +193,7 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    window.sendMessage = async function(customText = null) {
+    async function sendMessage(customText = null) {
         const inputField = document.getElementById('user-input');
         const text = customText || inputField.value.trim();
         if (!text) return;
@@ -211,7 +201,7 @@
         appendMessageToDOM('user-message', text);
         if (!customText) inputField.value = '';
 
-        chatHistory.push({ role: 'user', parts: [{ text: text }] });
+        chatHistory.push({ role: 'user', text: text });
 
         const chatContainer = document.getElementById('chat-container');
         const botDiv = document.createElement('div');
@@ -221,40 +211,46 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
         try {
-            // SDK का उपयोग करके gemini-2.5-flash या gemini-1.5-flash कॉल करना
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: chatHistory,
-                config: {
-                    systemInstruction: systemInstruction,
-                }
+            const contents = chatHistory.map(item => ({
+                role: item.role === 'user' ? 'user' : 'model',
+                parts: [{ text: item.text }]
+            }));
+
+            contents[0].parts[0].text = systemPrompt + "\n\nमरीज़ का सवाल: " + contents[0].parts[0].text;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: contents })
             });
 
-            const reply = response.text;
-            botDiv.innerHTML = `${reply.replace(/\n/g, '<br>')} <br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace('🔊 सुनें', '').trim())">🔊 सुनें</button>`;
+            const data = await response.json();
             
-            chatHistory.push({ role: 'model', parts: [{ text: reply }] });
-            
-            // LocalStorage के लिए सरल रूप में सेव करना
-            const simpleHistory = chatHistory.map(h => ({ role: h.role, text: h.parts[0].text }));
-            localStorage.setItem('upchar_hub_history_v5', JSON.stringify(simpleHistory));
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                const reply = data.candidates[0].content.parts[0].text;
+                botDiv.innerHTML = `${reply.replace(/\n/g, '<br>')} <br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace('🔊 सुनें', '').trim())">🔊 सुनें</button>`;
+                
+                chatHistory.push({ role: 'model', text: reply });
+                localStorage.setItem('upchar_hub_history_v6', JSON.stringify(chatHistory));
 
-            speakText(reply);
+                speakText(reply);
+            } else {
+                botDiv.textContent = "माफ़ कीजिए, सर्वर से उत्तर प्राप्त नहीं हुआ। कृपया पुनः प्रयास करें।";
+            }
 
         } catch (error) {
-            console.error(error);
-            botDiv.textContent = "माफ़ कीजिए, उत्तर प्राप्त करने में समस्या आ रही है। कृपया पुनः प्रयास करें।";
+            botDiv.textContent = "माफ़ कीजिए, नेटवर्क या कनेक्शन में कुछ दिक्कत है।";
         }
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    window.handleKeyPress = function(event) {
+    function handleKeyPress(event) {
         if (event.key === 'Enter') {
-            window.sendMessage();
+            sendMessage();
         }
     }
 
-    window.speakText = function(text) {
+    function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const cleanText = text.replace(/🔊 सुनें/g, '').replace(/🚨 आपातकाल में 108/g, '');
@@ -265,7 +261,7 @@
     }
 
     let recognition;
-    window.toggleSpeechRecognition = function() {
+    function toggleSpeechRecognition() {
         const micBtn = document.getElementById('mic-btn');
         const inputField = document.getElementById('user-input');
 
@@ -287,7 +283,7 @@
         recognition.onresult = function(event) {
             const speechToText = event.results[0][0].transcript;
             inputField.value = speechToText;
-            window.sendMessage(speechToText);
+            sendMessage(speechToText);
         };
 
         recognition.onerror = function() {
@@ -303,21 +299,20 @@
         recognition.start();
     }
 
-    window.clearHistory = function() {
+    function clearHistory() {
         if (confirm("क्या आप नया चैट शुरू करना चाहते हैं?")) {
-            localStorage.removeItem('upchar_hub_history_v5');
+            localStorage.removeItem('upchar_hub_history_v6');
             location.reload();
         }
     }
 
-    window.shareChat = function() {
-        const savedHistory = JSON.parse(localStorage.getItem('upchar_hub_history_v5') || '[]');
-        if (savedHistory.length === 0) {
+    function shareChat() {
+        if (chatHistory.length === 0) {
             alert("शेयर करने के लिए कोई बातचीत उपलब्ध नहीं है।");
             return;
         }
         let shareText = "--- Upchar Hub Consultation ---\n\n";
-        savedHistory.forEach(item => {
+        chatHistory.forEach(item => {
             shareText += (item.role === 'user' ? "मरीज़: " : "डॉक्टर: ") + item.text + "\n\n";
         });
 
