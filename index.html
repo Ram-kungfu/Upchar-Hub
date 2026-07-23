@@ -13,18 +13,19 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            box-sizing: border-box;
         }
         header {
             background-color: #00796b;
             color: white;
-            padding: 15px;
+            padding: 12px 15px;
             text-align: center;
             font-size: 18px;
             font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-sizing: border-box;
+            flex-shrink: 0;
         }
         .header-btns button {
             background: white;
@@ -37,49 +38,15 @@
             font-weight: bold;
             margin-left: 5px;
         }
-        #chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .message {
-            max-width: 80%;
-            padding: 12px;
-            border-radius: 10px;
-            line-height: 1.5;
-            font-size: 16px;
-            word-wrap: break-word;
-        }
-        .user-message {
-            background-color: #d1e7dd;
-            align-self: flex-end;
-            color: #0f5132;
-        }
-        .bot-message {
-            background-color: #ffffff;
-            align-self: flex-start;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .speak-btn {
-            background: none;
-            border: none;
-            color: #00796b;
-            cursor: pointer;
-            font-size: 13px;
-            margin-top: 5px;
-            display: inline-block;
-            font-weight: bold;
-        }
+        /* इनपुट बॉक्स को ऊपर रखने के लिए सेटअप */
         #input-container {
             display: flex;
             padding: 10px;
             background-color: #ffffff;
-            border-top: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
             align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         #user-input {
             flex: 1;
@@ -108,13 +75,53 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        /* चैट कंटेनर नीचे की तरफ फैलेगा */
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px;
+            border-radius: 10px;
+            line-height: 1.5;
+            font-size: 16px;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #d1e7dd;
+            align-self: flex-end;
+            color: #0f5132;
+        }
+        .bot-message {
+            background-color: #ffffff;
+            align-self: flex-start;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .speak-btn {
+            background: none;
+            border: none;
+            color: #00796b;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 5px;
+            display: inline-block;
+            font-weight: bold;
+        }
         .footer-note {
             text-align: center;
             font-size: 12px;
             color: #d9534f;
-            padding: 5px;
+            padding: 6px;
             background: #fff;
             font-weight: bold;
+            flex-shrink: 0;
+            border-top: 1px solid #eee;
         }
     </style>
 </head>
@@ -128,6 +135,13 @@
     </div>
 </header>
 
+<!-- कीपैड से छिपने से बचाने के लिए टाइपिंग बॉक्स को ऊपर (चैट से पहले) रखा गया है -->
+<div id="input-container">
+    <input type="text" id="user-input" placeholder="अपनी समस्या यहाँ बताएं या बोलें..." onkeypress="handleKeyPress(event)">
+    <button id="mic-btn" class="action-btn" onclick="toggleSpeechRecognition()" title="बोलकर पूछें">🎙️</button>
+    <button id="send-btn" class="action-btn" onclick="sendMessage()">भेजें</button>
+</div>
+
 <div id="chat-container">
     <div class="message bot-message" id="welcome-msg">
         नमस्ते! मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?
@@ -137,15 +151,9 @@
 
 <div class="footer-note">🚨 आपातकाल में 108/102 डायल करें</div>
 
-<div id="input-container">
-    <input type="text" id="user-input" placeholder="अपनी समस्या यहाँ बताएं या बोलें..." onkeypress="handleKeyPress(event)">
-    <button id="mic-btn" class="action-btn" onclick="toggleSpeechRecognition()" title="बोलकर पूछें">🎙️</button>
-    <button id="send-btn" class="action-btn" onclick="sendMessage()">भेजें</button>
-</div>
-
 <script>
-    // आपकी अपनी Gemini API Key सेट की गई है
-    const API_KEY = "AIzaSyAUeqx_K5fB3A17rWE-qRCFKvBLGZPsUq8"; 
+    // नई API Key और gemini-3.5-flash मॉडल सेट किया गया है
+    const API_KEY = "AQ.Ab8RN6LWdUbOo0QgNqD-G-_Jx4O_3tEyf-KqOz2MYKpAeUMvmQ"; 
 
     const systemPrompt = `तुम 'Upchar Hub' के एक विशेषज्ञ डिजिटल डॉक्टर हो। तुम्हारा स्वभाव बहुत ही धैर्यवान, विनम्र और मददगार है। 
     जब कोई मरीज़ तुमसे बात करे, तो इन चरणों का पालन करो:
@@ -159,13 +167,12 @@
 
     let chatHistory = [];
 
-    // पेज लोड होने पर पुरानी हिस्ट्री लोड करें
     window.onload = function() {
-        const savedHistory = localStorage.getItem('upchar_hub_history');
+        const savedHistory = localStorage.getItem('upchar_hub_history_v3');
         if (savedHistory) {
             chatHistory = JSON.parse(savedHistory);
             const chatContainer = document.getElementById('chat-container');
-            chatContainer.innerHTML = ''; // पुराना वेलकम हटाकर सेव्ड चैट दिखाएं
+            chatContainer.innerHTML = ''; 
             
             chatHistory.forEach(chat => {
                 appendMessageToDOM(chat.role === 'user' ? 'user-message' : 'bot-message', chat.text);
@@ -206,34 +213,35 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
         try {
-            // Gemini API v1.1 / v1beta multi-turn format mapping
             const contents = chatHistory.map(item => ({
                 role: item.role === 'user' ? 'user' : 'model',
                 parts: [{ text: item.text }]
             }));
 
-            // सिस्टम प्रॉम्प्ट को पहले मैसेज में जोड़ना
             contents[0].parts[0].text = systemPrompt + "\n\nमरीज़ का सवाल: " + contents[0].parts[0].text;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: contents })
             });
 
             const data = await response.json();
-            const reply = data.candidates[0].content.parts[0].text;
-
-            botDiv.innerHTML = `${reply.replace(/\n/g, '<br>')} <br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace('🔊 सुनें', '').trim())">🔊 सुनें</button>`;
             
-            chatHistory.push({ role: 'model', text: reply });
-            localStorage.setItem('upchar_hub_history', JSON.stringify(chatHistory));
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                const reply = data.candidates[0].content.parts[0].text;
+                botDiv.innerHTML = `${reply.replace(/\n/g, '<br>')} <br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace('🔊 सुनें', '').trim())">🔊 सुनें</button>`;
+                
+                chatHistory.push({ role: 'model', text: reply });
+                localStorage.setItem('upchar_hub_history_v3', JSON.stringify(chatHistory));
 
-            // ऑटो बोलकर जवाब देना
-            speakText(reply);
+                speakText(reply);
+            } else {
+                botDiv.textContent = "माफ़ कीजिए, सर्वर से उत्तर प्राप्त नहीं हुआ। कृपया पुनः प्रयास करें।";
+            }
 
         } catch (error) {
-            botDiv.textContent = "माफ़ कीजिए, नेटवर्क में कुछ दिक्कत है। कृपया पुनः प्रयास करें।";
+            botDiv.textContent = "माफ़ कीजिए, नेटवर्क या API कनेक्शन में कुछ दिक्कत है।";
         }
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
@@ -244,7 +252,6 @@
         }
     }
 
-    // बोलकर जवाब सुनने के लिए (Text-to-Speech)
     function speakText(text) {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -255,14 +262,13 @@
         }
     }
 
-    // बोलकर सवाल पूछने के लिए (Speech-to-Text / Mic)
     let recognition;
     function toggleSpeechRecognition() {
         const micBtn = document.getElementById('mic-btn');
         const inputField = document.getElementById('user-input');
 
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert("आपका ब्राउज़र बोलकर टाइप करने की सुविधा (Speech Recognition) सपोर्ट नहीं करता है।");
+            alert("आपका ब्राउज़र बोलकर टाइप करने की सुविधा सपोर्ट नहीं करता है।");
             return;
         }
 
@@ -276,12 +282,6 @@
             inputField.placeholder = "सुन रहे हैं, बोलिए...";
         };
 
-        tagResult = function(event) {
-            const speechToText = event.results[0][0].transcript;
-            inputField.value = speechToText;
-            sendMessage(speechToText);
-        };
-
         recognition.onresult = function(event) {
             const speechToText = event.results[0][0].transcript;
             inputField.value = speechToText;
@@ -290,26 +290,24 @@
 
         recognition.onerror = function() {
             micBtn.classList.remove('listening');
-            inputField.placeholder = "अपनी समस्या यहाँ बताएं...";
+            inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
         };
 
         recognition.onend = function() {
             micBtn.classList.remove('listening');
-            inputField.placeholder = "अपनी समस्या यहाँ बताएं...";
+            inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
         };
 
         recognition.start();
     }
 
-    // चैट हिस्ट्री साफ़ करना
     function clearHistory() {
-        if (confirm("क्या आप नया चैट शुरू करना चाहते हैं? पुरानी चैट डिलीट हो जाएगी।")) {
-            localStorage.removeItem('upchar_hub_history');
+        if (confirm("क्या आप नया चैट शुरू करना चाहते हैं?")) {
+            localStorage.removeItem('upchar_hub_history_v3');
             location.reload();
         }
     }
 
-    // चैट शेयर करना
     function shareChat() {
         if (chatHistory.length === 0) {
             alert("शेयर करने के लिए कोई बातचीत उपलब्ध नहीं है।");
@@ -321,17 +319,13 @@
         });
 
         if (navigator.share) {
-            navigator.share({
-                title: 'Upchar Hub Chat',
-                text: shareText
-            }).catch(() => {});
+            navigator.share({ title: 'Upchar Hub Chat', text: shareText }).catch(() => {});
         } else {
             navigator.clipboard.writeText(shareText);
-            alert("चैट कॉपी हो गई है! आप इसे किसी को भी पेस्ट करके भेज सकते हैं।");
+            alert("चैट कॉपी हो गई है!");
         }
     }
 </script>
 
 </body>
 </html>
-
