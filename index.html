@@ -194,34 +194,37 @@
         #image-preview-container {
             display: none;
             background: white;
-            padding: 10px;
-            border-radius: 15px;
+            padding: 8px;
+            border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 10px;
             position: relative;
             width: max-content;
+            border: 1px solid #eaeaea;
         }
 
         #image-preview {
             max-height: 80px;
-            border-radius: 8px;
+            border-radius: 6px;
+            display: block;
         }
 
         .remove-img-btn {
             position: absolute;
-            top: -5px;
-            right: -5px;
+            top: -8px;
+            right: -8px;
             background: #ff4d4d;
             color: white;
             border: none;
             border-radius: 50%;
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             cursor: pointer;
             font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .input-wrapper {
@@ -290,21 +293,18 @@
             z-index: 10;
             position: relative;
             background: transparent;
+            margin-bottom: 5px;
         }
 
         .emergency {
             color: #d9534f;
             font-size: 11px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            margin-bottom: 3px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
         .vision {
-            color: #b0b0b0;
+            color: #999999;
             font-size: 9px;
             font-weight: bold;
             letter-spacing: 1px;
@@ -380,15 +380,22 @@
             margin-bottom: 10px;
             font-size: 13px;
             border-left: 3px solid var(--primary-green);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
         .history-text {
             color: var(--text-dark);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+        }
+
+        .history-time {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 8px;
         }
 
         .history-actions {
@@ -400,7 +407,7 @@
         }
 
         .history-actions button {
-            background: none; border: none; cursor: pointer; font-size: 13px;
+            background: none; border: none; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; gap: 5px; align-items: center;
         }
         
         .btn-share { color: var(--primary-green); }
@@ -445,7 +452,7 @@
         </div>
     </div>
     <div class="header-right">
-        <i class="fas fa-plus" onclick="clearHistory()" title="नया चैट"></i>
+        <i class="fas fa-plus" onclick="clearScreen()" title="नया चैट"></i>
         <i class="fas fa-heart" onclick="changeApiKey()" title="API Settings"></i>
     </div>
 </header>
@@ -461,7 +468,7 @@
         <!-- History items will load here -->
     </div>
     <div class="sidebar-footer">
-        <button class="new-chat-btn" onclick="clearHistory()">
+        <button class="new-chat-btn" onclick="clearScreen()">
             <i class="fas fa-plus"></i> नया परामर्श शुरू करें
         </button>
     </div>
@@ -469,14 +476,7 @@
 
 <!-- Chat Area -->
 <div id="chat-container">
-    <div class="message bot-message">
-        नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ।<br>मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?
-        <div class="msg-actions">
-            <button class="action-link speak-btn" onclick="togglePlayPause(this, 'नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?')"><i class="fas fa-volume-up"></i> सुनें</button>
-            <button class="action-link" onclick="copyText('नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?')"><i class="far fa-copy"></i> कॉपी</button>
-        </div>
-        <div class="timestamp" id="welcome-time"></div>
-    </div>
+    <!-- Messages will be rendered here by JS -->
 </div>
 
 <!-- Input Area -->
@@ -510,9 +510,7 @@
 
 <!-- Footer -->
 <div class="footer-note">
-    <div class="emergency">
-        <i class="fas fa-ambulance"></i> आपातकाल में 108/102 डायल करें
-    </div>
+    <div class="emergency">🚨 आपातकाल में 108/102 डायल करें</div>
     <div class="vision">RAM BHAI KUNG FU MASTER VISION</div>
 </div>
 
@@ -521,6 +519,7 @@ let API_KEY = localStorage.getItem('upchar_hub_api_key') || "";
 let chatHistory = [];
 let attachedImageBase64 = null;
 let attachedMimeType = null;
+let welcomeTimeStr = "";
 
 // System Prompt
 const systemPrompt = `तुम 'Upchar Hub' के एक वरिष्ठ और विशेषज्ञ एमबीबीएस डॉक्टर (Senior MBBS Doctor) हो। जब कोई मरीज़ अपनी समस्या, लक्षण या मेडिकल रिपोर्ट की फोटो भेजे, तो जवाब देते समय इस सख्त क्रम का पालन करो:
@@ -533,27 +532,14 @@ const systemPrompt = `तुम 'Upchar Hub' के एक वरिष्ठ �
 भाषा पूरी तरह स्पष्ट और सरल हिंदी/Hinglish में होनी चाहिए।`;
 
 window.onload = function() {
-    setWelcomeTime();
-    const savedHistory = localStorage.getItem('upchar_hub_history_v10');
+    welcomeTimeStr = getTimeString();
+    const savedHistory = localStorage.getItem('upchar_hub_history_v11'); // Updated key
     if (savedHistory) {
         chatHistory = JSON.parse(savedHistory);
-        const chatContainer = document.getElementById('chat-container');
-        // Clear all but welcome message
-        Array.from(chatContainer.children).forEach((child, index) => {
-            if(index > 0) child.remove();
-        });
-        
-        chatHistory.forEach(chat => {
-            appendMessageToDOM(chat.role === 'user' ? 'user-message' : 'bot-message', chat.text, chat.img, chat.time, false);
-        });
     }
+    renderMainChat();
     loadSidebarHistory();
 };
-
-function setWelcomeTime() {
-    const now = new Date();
-    document.getElementById('welcome-time').innerText = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-}
 
 function checkApiKey() {
     if (!API_KEY) {
@@ -576,19 +562,22 @@ function changeApiKey() {
     }
 }
 
-// Fixed Image Upload Handler
+// Fixed Image Upload Handler - Shows Instant Preview
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (file) {
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImg = document.getElementById('image-preview');
+        
+        // Instant visual preview
+        previewImg.src = URL.createObjectURL(file);
+        previewContainer.style.display = 'block';
+
+        // Background conversion for API
         const reader = new FileReader();
         reader.onload = function(e) {
             attachedImageBase64 = e.target.result;
             attachedMimeType = file.type;
-            
-            const previewContainer = document.getElementById('image-preview-container');
-            const previewImg = document.getElementById('image-preview');
-            previewImg.src = attachedImageBase64;
-            previewContainer.style.display = 'block';
         };
         reader.readAsDataURL(file);
     }
@@ -604,6 +593,33 @@ function removeImage() {
 function getTimeString() {
     const now = new Date();
     return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+}
+
+// Function to redraw the main chat window
+function renderMainChat() {
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.innerHTML = ''; // Clear container
+
+    // Always add Welcome Message
+    const welcomeDiv = document.createElement('div');
+    welcomeDiv.className = 'message bot-message';
+    welcomeDiv.innerHTML = `
+        नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ।<br>मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?
+        <div class="msg-actions">
+            <button class="action-link speak-btn" onclick="togglePlayPause(this, 'नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?')"><i class="fas fa-volume-up"></i> सुनें</button>
+            <button class="action-link" onclick="copyText('नमस्ते, मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai Kung Fu Master द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?')"><i class="far fa-copy"></i> कॉपी</button>
+        </div>
+        <div class="timestamp">${welcomeTimeStr}</div>
+    `;
+    chatContainer.appendChild(welcomeDiv);
+
+    // Append un-archived history
+    chatHistory.forEach(chat => {
+        if (!chat.archived) {
+            appendMessageToDOM(chat.role === 'user' ? 'user-message' : 'bot-message', chat.text, chat.img, chat.time, false);
+        }
+    });
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function appendMessageToDOM(className, text, imgData = null, timeString = null, animate = true) {
@@ -663,8 +679,9 @@ async function sendMessage(customText = null) {
     // Add User Message
     appendMessageToDOM('user-message', text, currentImg, currentTime);
     
-    // Save to History state
-    chatHistory.push({ id: Date.now(), role: 'user', text: text || "[फोटो/रिपोर्ट भेजी गई]", img: currentImg, time: currentTime });
+    // Save to History state (archived: false means it shows on current screen)
+    chatHistory.push({ id: Date.now(), role: 'user', text: text || "[फोटो/रिपोर्ट भेजी गई]", img: currentImg, time: currentTime, archived: false });
+    localStorage.setItem('upchar_hub_history_v11', JSON.stringify(chatHistory));
     
     // Cleanup Input UI
     if (!customText) inputField.value = '';
@@ -688,7 +705,7 @@ async function sendMessage(customText = null) {
             });
         }
 
-        // Using gemini-1.5-flash which is the standard fast model supporting multimodal
+        // Updated Gemini Model as per instructions
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -700,13 +717,12 @@ async function sendMessage(customText = null) {
         if (data.candidates && data.candidates[0].content.parts[0].text) {
             const reply = data.candidates[0].content.parts[0].text;
             
-            // Update Loading Div with Real Data
             botDiv.remove();
             appendMessageToDOM('bot-message', reply, null, getTimeString());
 
-            chatHistory.push({ id: Date.now()+1, role: 'model', text: reply, img: null, time: getTimeString() });
-            localStorage.setItem('upchar_hub_history_v10', JSON.stringify(chatHistory));
-            loadSidebarHistory(); // update sidebar
+            chatHistory.push({ id: Date.now()+1, role: 'model', text: reply, img: null, time: getTimeString(), archived: false });
+            localStorage.setItem('upchar_hub_history_v11', JSON.stringify(chatHistory));
+            loadSidebarHistory();
 
         } else if (data.error) {
             botDiv.innerHTML = "एरर: " + (data.error.message || "API Key चेक करें।") + `<div class="timestamp">${getTimeString()}</div>`;
@@ -783,7 +799,6 @@ function togglePlayPause(btn, text) {
         window.activeSpeakBtn.innerHTML = '<i class="fas fa-volume-up"></i> सुनें';
     }
 
-    // Clean markdown/html for speech
     const cleanText = text.replace(/[*#_]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'hi-IN';
@@ -849,7 +864,7 @@ function loadSidebarHistory() {
 
             div.innerHTML = `
                 <div class="history-text"><b>प्रश्न:</b> ${displayTxt}</div>
-                <div style="font-size:10px; color:#888; margin-bottom:5px;">${item.time}</div>
+                <div class="history-time">${item.time}</div>
                 <div class="history-actions">
                     <button class="btn-share" onclick="shareHistoryItem(${item.id})" title="शेयर करें"><i class="fas fa-share-alt"></i> शेयर</button>
                     <button class="btn-del" onclick="deleteHistoryItem(${item.id})" title="डिलीट करें"><i class="fas fa-trash-alt"></i> डिलीट</button>
@@ -860,17 +875,20 @@ function loadSidebarHistory() {
     }
 }
 
+// Fix: Now it truly deletes from history array permanently
 function deleteHistoryItem(id) {
     if(confirm("क्या आप इस चैट हिस्ट्री को डिलीट करना चाहते हैं?")) {
-        // Find the index of the user message
         const index = chatHistory.findIndex(item => item.id === id);
         if(index !== -1) {
-            // Remove user msg and the following bot msg
-            chatHistory.splice(index, 2); 
-            localStorage.setItem('upchar_hub_history_v10', JSON.stringify(chatHistory));
-            loadSidebarHistory(); // Reload sidebar UI
-            // Reload page to reflect main chat deletion cleanly
-            location.reload(); 
+            // Remove user msg and the following bot msg (if it exists)
+            if (chatHistory[index + 1] && chatHistory[index + 1].role === 'model') {
+                chatHistory.splice(index, 2); 
+            } else {
+                chatHistory.splice(index, 1);
+            }
+            localStorage.setItem('upchar_hub_history_v11', JSON.stringify(chatHistory));
+            loadSidebarHistory(); // Update Sidebar
+            renderMainChat();     // Update Main Screen seamlessly
         }
     }
 }
@@ -892,10 +910,15 @@ function shareHistoryItem(userId) {
     }
 }
 
-function clearHistory() {
-    if (confirm("क्या आप बिल्कुल नया परामर्श (New Chat) शुरू करना चाहते हैं?")) {
-        localStorage.removeItem('upchar_hub_history_v10');
-        location.reload();
+// Fix: Only clears the screen, history remains safe in sidebar
+function clearScreen() {
+    if (confirm("क्या आप नया परामर्श शुरू करना चाहते हैं? पुरानी चैट इतिहास (History) में सुरक्षित रहेगी।")) {
+        // Mark current items as archived so they don't show on main screen anymore
+        chatHistory = chatHistory.map(item => ({...item, archived: true}));
+        localStorage.setItem('upchar_hub_history_v11', JSON.stringify(chatHistory));
+        
+        renderMainChat(); // Clears the screen visually
+        closeSidebar();
     }
 }
 </script>
