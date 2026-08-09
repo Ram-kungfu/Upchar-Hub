@@ -38,7 +38,6 @@ font-size: 12px;
 font-weight: bold;
 margin-left: 5px;
 }
-/* कीपैड से बॉक्स छिपने से बचाने के लिए इनपुट बॉक्स ऊपर सेट है */
 #input-container {
 display: flex;
 padding: 10px;
@@ -153,173 +152,171 @@ border-top: 1px solid #eee;
 // आपकी API Key
 const API_KEY = "AIzaSyAUeqx_K5fB3A17rWE-qRCFKvBLGZPsUq8";
 
-// सिंटैक्स एरर ठीक किया गया (बैकटिक्स जोड़े गए)
+// डॉक्टर का निर्देश
 const systemPrompt = `तुम 'Upchar Hub' के एक विशेषज्ञ डिजिटल डॉक्टर हो। तुम्हारा स्वभाव बहुत ही धैर्यवान, विनम्र और मददगार है। जब कोई मरीज़ तुमसे बात करे, तो इन चरणों का पालन करो: 1. लक्षणों का विश्लेषण: मरीज़ के लक्षणों को ध्यान से सुनो और ज़रूरत पड़ने पर 1-2 और सवाल पूछो। 2. संभावित बीमारी: लक्षणों के आधार पर बीमारी का नाम बताओ। 3. दवा और डोज़ (Dose): बीमारी के लिए सामान्य दवा, लेने का समय और डोज़ स्पष्ट रूप से बताओ। 4. साइड इफेक्ट्स: दवा से होने वाले सामान्य नुकसान जैसे नींद आना या जी मिचलाना के बारे में आगाह करो। 5. परहेज और घरेलू उपाय: क्या खाना चाहिए और क्या नहीं, इसकी सलाह दो। 6. डिस्क्लेमर (अनिवार्य): अंत में यह ज़रूर कहो कि 'मैं एक AI हूँ, गंभीर स्थिति में तुरंत डॉक्टर के पास जाएँ और दवा बिना डॉक्टरी पर्ची के न लें।' भाषा: बातचीत को सरल और हिंदी में रखो।`;
 
 let chatHistory = [];
 
 window.onload = function() {
-const savedHistory = localStorage.getItem('upchar_hub_history_v7');
-if (savedHistory) {
-chatHistory = JSON.parse(savedHistory);
-const chatContainer = document.getElementById('chat-container');
-chatContainer.innerHTML = '';
+    const savedHistory = localStorage.getItem('upchar_hub_history_v7');
+    if (savedHistory) {
+        chatHistory = JSON.parse(savedHistory);
+        const chatContainer = document.getElementById('chat-container');
+        chatContainer.innerHTML = '';
 
-chatHistory.forEach(chat => {
-appendMessageToDOM(chat.role === 'user' ? 'user-message' : 'bot-message', chat.text);
-});
-}
+        chatHistory.forEach(chat => {
+            appendMessageToDOM(chat.role === 'user' ? 'user-message' : 'bot-message', chat.text);
+        });
+    }
 };
 
 function appendMessageToDOM(className, text) {
-const chatContainer = document.getElementById('chat-container');
-const div = document.createElement('div');
-div.className = `message ${className}`;
+    const chatContainer = document.getElementById('chat-container');
+    const div = document.createElement('div');
+    div.className = `message ${className}`;
 
-if (className === 'bot-message') {
-// HTML स्ट्रिंग का सिंटैक्स ठीक किया गया
-div.innerHTML = text.replace(/\n/g, '<br>') + '<br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace(\'🔊 सुनें\', \'\').trim())">🔊 सुनें</button>';
-} else {
-div.textContent = text;
-}
+    if (className === 'bot-message') {
+        div.innerHTML = text.replace(/\n/g, '<br>') + '<br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace(\'🔊 सुनें\', \'\').trim())">🔊 सुनें</button>';
+    } else {
+        div.textContent = text;
+    }
 
-chatContainer.appendChild(div);
-chatContainer.scrollTop = chatContainer.scrollHeight;
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 async function sendMessage(customText = null) {
-const inputField = document.getElementById('user-input');
-const text = customText || inputField.value.trim();
-if (!text) return;
+    const inputField = document.getElementById('user-input');
+    const text = customText || inputField.value.trim();
+    if (!text) return;
 
-appendMessageToDOM('user-message', text);
-if (!customText) inputField.value = '';
+    appendMessageToDOM('user-message', text);
+    if (!customText) inputField.value = '';
 
-chatHistory.push({ role: 'user', text: text });
+    chatHistory.push({ role: 'user', text: text });
 
-const chatContainer = document.getElementById('chat-container');
-const botDiv = document.createElement('div');
-botDiv.className = 'message bot-message';
-botDiv.textContent = "डॉक्टर सोच रहे हैं...";
-chatContainer.appendChild(botDiv);
-chatContainer.scrollTop = chatContainer.scrollHeight;
+    const chatContainer = document.getElementById('chat-container');
+    const botDiv = document.createElement('div');
+    botDiv.className = 'message bot-message';
+    botDiv.textContent = "डॉक्टर सोच रहे हैं...";
+    chatContainer.appendChild(botDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 
-try {
-const contents = chatHistory.map(item => ({
-role: item.role === 'user' ? 'user' : 'model',
-parts: [{ text: item.text }]
-}));
+    try {
+        const contents = chatHistory.map(item => ({
+            role: item.role === 'user' ? 'user' : 'model',
+            parts: [{ text: item.text }]
+        }));
 
-contents[0].parts[0].text = systemPrompt + "\n\nमरीज़ का सवाल: " + contents[0].parts[0].text;
+        contents[0].parts[0].text = systemPrompt + "\n\nमरीज़ का सवाल: " + contents[0].parts[0].text;
 
-// URL का सिंटैक्स और मॉडल का नाम ठीक किया गया
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ contents: contents })
-});
+        // यहाँ मॉडल का नाम बदलकर gemini-2.5-flash कर दिया गया है! 
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: contents })
+        });
 
-const data = await response.json();
+        const data = await response.json();
 
-if (data.candidates && data.candidates[0].content.parts[0].text) {
-const reply = data.candidates[0].content.parts[0].text;
-// HTML स्ट्रिंग का सिंटैक्स ठीक किया गया
-botDiv.innerHTML = reply.replace(/\n/g, '<br>') + '<br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace(\'🔊 सुनें\', \'\').trim())">🔊 सुनें</button>';
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            const reply = data.candidates[0].content.parts[0].text;
+            botDiv.innerHTML = reply.replace(/\n/g, '<br>') + '<br><button class="speak-btn" onclick="speakText(this.parentNode.innerText.replace(\'🔊 सुनें\', \'\').trim())">🔊 सुनें</button>';
 
-chatHistory.push({ role: 'model', text: reply });
-localStorage.setItem('upchar_hub_history_v7', JSON.stringify(chatHistory));
+            chatHistory.push({ role: 'model', text: reply });
+            localStorage.setItem('upchar_hub_history_v7', JSON.stringify(chatHistory));
 
-speakText(reply);
-} else if (data.error) {
-botDiv.textContent = "एरर: " + (data.error.message || "कृपया API Key की जाँच करें।");
-} else {
-botDiv.textContent = "माफ़ कीजिए, सर्वर से उत्तर प्राप्त नहीं हुआ।";
-}
+            speakText(reply);
+        } else if (data.error) {
+            botDiv.textContent = "एरर: " + (data.error.message || "कृपया API Key की जाँच करें।");
+        } else {
+            botDiv.textContent = "माफ़ कीजिए, सर्वर से उत्तर प्राप्त नहीं हुआ।";
+        }
 
-} catch (error) {
-botDiv.textContent = "माफ़ कीजिए, नेटवर्क या कनेक्शन में कुछ दिक्कत है।";
-}
-chatContainer.scrollTop = chatContainer.scrollHeight;
+    } catch (error) {
+        botDiv.textContent = "माफ़ कीजिए, नेटवर्क या कनेक्शन में कुछ दिक्कत है।";
+    }
+    chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function handleKeyPress(event) {
-if (event.key === 'Enter') {
-sendMessage();
-}
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
 }
 
 function speakText(text) {
-if ('speechSynthesis' in window) {
-window.speechSynthesis.cancel();
-const cleanText = text.replace(/🔊 सुनें/g, '').replace(/🚨 आपातकाल में 108/g, '');
-const utterance = new SpeechSynthesisUtterance(cleanText);
-utterance.lang = 'hi-IN';
-window.speechSynthesis.speak(utterance);
-}
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const cleanText = text.replace(/🔊 सुनें/g, '').replace(/🚨 आपातकाल में 108\/102 डायल करें/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'hi-IN';
+        window.speechSynthesis.speak(utterance);
+    }
 }
 
 let recognition;
 function toggleSpeechRecognition() {
-const micBtn = document.getElementById('mic-btn');
-const inputField = document.getElementById('user-input');
+    const micBtn = document.getElementById('mic-btn');
+    const inputField = document.getElementById('user-input');
 
-if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-alert("आपका ब्राउज़र बोलकर टाइप करने की सुविधा सपोर्ट नहीं करता है।");
-return;
-}
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("आपका ब्राउज़र बोलकर टाइप करने की सुविधा सपोर्ट नहीं करता है।");
+        return;
+    }
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-recognition = new SpeechRecognition();
-recognition.lang = 'hi-IN';
-recognition.interimResults = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN';
+    recognition.interimResults = false;
 
-recognition.onstart = function() {
-micBtn.classList.add('listening');
-inputField.placeholder = "सुन रहे हैं, बोलिए...";
-};
+    recognition.onstart = function() {
+        micBtn.classList.add('listening');
+        inputField.placeholder = "सुन रहे हैं, बोलिए...";
+    };
 
-recognition.onresult = function(event) {
-const speechToText = event.results[0][0].transcript;
-inputField.value = speechToText;
-sendMessage(speechToText);
-};
+    recognition.onresult = function(event) {
+        const speechToText = event.results[0][0].transcript;
+        inputField.value = speechToText;
+        sendMessage(speechToText);
+    };
 
-recognition.onerror = function() {
-micBtn.classList.remove('listening');
-inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
-};
+    recognition.onerror = function() {
+        micBtn.classList.remove('listening');
+        inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
+    };
 
-recognition.onend = function() {
-micBtn.classList.remove('listening');
-inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
-};
+    recognition.onend = function() {
+        micBtn.classList.remove('listening');
+        inputField.placeholder = "अपनी समस्या यहाँ बताएं या बोलें...";
+    };
 
-recognition.start();
+    recognition.start();
 }
 
 function clearHistory() {
-if (confirm("क्या आप नया चैट शुरू करना चाहते हैं?")) {
-localStorage.removeItem('upchar_hub_history_v7');
-location.reload();
-}
+    if (confirm("क्या आप नया चैट शुरू करना चाहते हैं?")) {
+        localStorage.removeItem('upchar_hub_history_v7');
+        location.reload();
+    }
 }
 
 function shareChat() {
-if (chatHistory.length === 0) {
-alert("शेयर करने के लिए कोई बातचीत उपलब्ध नहीं है।");
-return;
-}
-let shareText = "--- Upchar Hub Consultation ---\n\n";
-chatHistory.forEach(item => {
-shareText += (item.role === 'user' ? "मरीज़: " : "डॉक्टर: ") + item.text + "\n\n";
-});
+    if (chatHistory.length === 0) {
+        alert("शेयर करने के लिए कोई बातचीत उपलब्ध नहीं है।");
+        return;
+    }
+    let shareText = "--- Upchar Hub Consultation ---\n\n";
+    chatHistory.forEach(item => {
+        shareText += (item.role === 'user' ? "मरीज़: " : "डॉक्टर: ") + item.text + "\n\n";
+    });
 
-if (navigator.share) {
-navigator.share({ title: 'Upchar Hub Chat', text: shareText }).catch(() => {});
-} else {
-navigator.clipboard.writeText(shareText);
-alert("चैट कॉपी हो गई है!");
-}
+    if (navigator.share) {
+        navigator.share({ title: 'Upchar Hub Chat', text: shareText }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(shareText);
+        alert("चैट कॉपी हो गई है!");
+    }
 }
 </script>
 
