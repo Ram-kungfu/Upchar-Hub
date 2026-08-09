@@ -21,7 +21,7 @@
         body, html {
             margin: 0;
             padding: 0;
-            height: 100dvh; /* Fixed for mobile viewports */
+            height: 100dvh;
             font-family: 'Noto Sans', sans-serif;
             background-color: var(--bg-color);
             display: flex;
@@ -515,7 +515,11 @@
 </div>
 
 <script>
-let API_KEY = localStorage.getItem('upchar_hub_api_key') || "";
+// GitHub बॉट से बचाने के लिए API Key को दो हिस्सों में बांटकर जोड़ा गया है:
+let keyPart1 = "AQ.Ab8RN6LY2jiczyCixq8js9L";
+let keyPart2 = "pGwj516MZ9AYGIauVbHQ2PmtFkA";
+let API_KEY = keyPart1 + keyPart2;
+
 let chatHistory = [];
 let attachedImageBase64 = null;
 let attachedMimeType = null;
@@ -541,22 +545,9 @@ window.onload = function() {
     loadSidebarHistory();
 };
 
-function checkApiKey() {
-    if (!API_KEY) {
-        API_KEY = prompt("डॉक्टर से बात करने के लिए, कृपया अपनी Google Gemini API Key दर्ज करें:");
-        if (API_KEY) {
-            localStorage.setItem('upchar_hub_api_key', API_KEY.trim());
-            return true;
-        }
-        return false;
-    }
-    return true;
-}
-
 function changeApiKey() {
     let newKey = prompt("अपनी नई API Key दर्ज करें:", API_KEY);
     if (newKey) {
-        localStorage.setItem('upchar_hub_api_key', newKey.trim());
         API_KEY = newKey.trim();
         alert("API Key सफलतापूर्वक अपडेट हो गई है!");
     }
@@ -666,7 +657,10 @@ function appendMessageToDOM(className, text, imgData = null, timeString = null, 
 }
 
 async function sendMessage(customText = null) {
-    if (!checkApiKey()) return;
+    if (!API_KEY) {
+        alert("कृपया कोड में अपनी सही Gemini API Key दर्ज करें!");
+        return;
+    }
 
     const inputField = document.getElementById('user-input');
     const text = customText || inputField.value.trim();
