@@ -27,16 +27,19 @@ justify-content: space-between;
 align-items: center;
 flex-shrink: 0;
 }
+.header-btns {
+display: flex;
+gap: 5px;
+}
 .header-btns button {
 background: white;
 color: #00796b;
 border: none;
-padding: 5px 10px;
+padding: 5px 8px;
 border-radius: 4px;
 cursor: pointer;
-font-size: 12px;
+font-size: 11px;
 font-weight: bold;
-margin-left: 5px;
 }
 #input-container {
 display: flex;
@@ -68,8 +71,12 @@ display: flex;
 align-items: center;
 justify-content: center;
 }
+#mic-btn {
+background-color: #004d40 !important;
+border: 2px solid #80cbc4;
+}
 #mic-btn.listening {
-background-color: #d9534f;
+background-color: #d9534f !important;
 animation: pulse 1s infinite;
 }
 @keyframes pulse {
@@ -134,10 +141,39 @@ justify-content: space-around;
 align-items: center;
 }
 #image-preview {
-max-height: 60px;
+max-height: 50px;
 border-radius: 4px;
 display: none;
 margin-right: 5px;
+}
+/* History Modal Style */
+#history-modal {
+display: none;
+position: fixed;
+top: 0; left: 0; width: 100%; height: 100%;
+background: rgba(0,0,0,0.5);
+z-index: 1000;
+justify-content: center;
+align-items: center;
+}
+.modal-content {
+background: white;
+width: 90%;
+max-height: 80vh;
+border-radius: 8px;
+padding: 15px;
+display: flex;
+flex-direction: column;
+overflow-y: auto;
+}
+.history-item {
+padding: 10px;
+border-bottom: 1px solid #eee;
+font-size: 14px;
+cursor: pointer;
+}
+.history-item:hover {
+background: #f9f9f9;
 }
 </style>
 </head>
@@ -146,15 +182,25 @@ margin-right: 5px;
 <header>
 <span>🩺 Upchar Hub</span>
 <div class="header-btns">
+<button onclick="openHistory()">📜 इतिहास</button>
 <button onclick="changeApiKey()">API Key</button>
 <button onclick="clearHistory()">नया चैट</button>
 <button onclick="shareChat()">शेयर करें</button>
 </div>
 </header>
 
+<!-- History Modal -->
+<div id="history-modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#00796b;">परामर्श इतिहास (History)</h3>
+        <div id="history-list"></div>
+        <button onclick="closeHistory()" style="margin-top:15px; background:#d9534f; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">बंद करें</button>
+    </div>
+</div>
+
 <div id="input-container">
 <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-<button class="action-btn" onclick="document.getElementById('image-input').click()" title="रिपोर्ट या फोटो अपलोड करें">📷</button>
+<button class="action-btn" onclick="document.getElementById('image-input').click()" title="गैलरी या कैमरे से रिपोर्ट अपलोड करें">📁</button>
 <img id="image-preview" alt="Preview">
 <input type="text" id="user-input" placeholder="अपनी समस्या यहाँ बताएं या रिपोर्ट अपलोड करें..." onkeypress="handleKeyPress(event)">
 <button id="mic-btn" class="action-btn" onclick="toggleSpeechRecognition()" title="बोलकर पूछें">🎙️</button>
@@ -164,7 +210,7 @@ margin-right: 5px;
 <div id="chat-container">
 <div class="message bot-message" id="welcome-msg">
 नमस्ते! मैं उपचार हब का डिजिटल डॉक्टर हूँ। मुझे Ram Bhai द्वारा आपकी सेहत की देखभाल के लिए बनाया गया है। मैं आपकी कैसे मदद कर सकता हूँ?
-<br><div class="msg-actions"><button class="speak-btn" onclick="speakText(this.parentNode.parentNode.innerText)">🔊 सुनें</button></div>
+<br><div class="msg-actions"><button class="speak-btn" onclick="togglePlayPause(this, this.parentNode.parentNode.innerText)">🔊 सुनें</button></div>
 </div>
 </div>
 
@@ -194,21 +240,21 @@ function changeApiKey() {
     }
 }
 
-// सख्त और विस्तृत एमबीबीएस डॉक्टर प्रिस्क्रिप्शन प्रॉम्प्ट
-const systemPrompt = `तुम 'Upchar Hub' के एक वरिष्ठ और विशेषज्ञ एमबीबीएस डॉक्टर (Senior MBBS Doctor) हो। जब कोई मरीज़ अपनी समस्या, लक्षण या मेडिकल रिपोर्ट की फोटो भेजे, तो जवाब देते समय इस सख्त क्रम (Sequence) का पालन करो:
+const systemPrompt = `तुम 'Upchar Hub' के एक वरिष्ठ और विशेषज्ञ एमबीबीएस डॉक्टर (Senior MBBS Doctor) हो। जब कोई मरीज़ अपनी समस्या, लक्षण या मेडिकल रिपोर्ट की फोटो भेजे, तो जवाब देते समय इस सख्त क्रम का पालन करो:
 1. क्लिनिकल डायग्नोसिस (संभावित बीमारी या रिपोर्ट की सटीक पहचान)।
 2. भाग 1: एलोपैथिक दवाइयां (Allopathic Prescription - Rx): सबसे पहले सटीक दवा का नाम, पावर/स्ट्रेंथ (जैसे 500mg), सटीक खुराक (Dosage), कितने समय अंतराल पर लेनी है, खाने के पहले या बाद में, और सेवन की अवधि स्पष्ट रूप से लिखो।
-3. साइड इफेक्ट्स और ओवरडोज चेतावनी: दवा से होने वाले सामान्य नुकसान (जैसे नींद आना, जी मिचलाना) तथा ज्यादा खाने या ओवरडोज के गंभीर खतरों के बारे में जरूर आगाह करो।
+3. साइड इफेक्ट्स और ओवरडोज चेतावनी: दवा से होने वाले सामान्य नुकसान तथा ज्यादा खाने या ओवरडोज के गंभीर खतरों के बारे में जरूर आगाह करो।
 4. भाग 2: आयुर्वेदिक या होम्योपैथिक विकल्प।
 5. भाग 3: पारंपरिक घरेलू उपाय और परहेज (क्या खाएं और क्या न खाएं)।
 6. अनिवार्य चिकित्सीय चेतावनी (Disclaimer): स्पष्ट लिखो कि 'मैं एक AI स्वास्थ्य सहायक हूँ, गंभीर स्थिति में तुरंत नजदीकी डॉक्टर या अस्पताल जाएं।'
-भाषा पूरी तरह स्पष्ट और सरल हिंदी/हिंग्लिश में होनी चाहिए।`;
+भाषा पूरी तरह स्पष्ट और सरल हिंदी/Hinglish में होनी चाहिए।`;
 
 let chatHistory = [];
 let attachedImageBase64 = null;
+let currentUtterance = null;
 
 window.onload = function() {
-    const savedHistory = localStorage.getItem('upchar_hub_history_v8');
+    const savedHistory = localStorage.getItem('upchar_hub_history_v9');
     if (savedHistory) {
         chatHistory = JSON.parse(savedHistory);
         const chatContainer = document.getElementById('chat-container');
@@ -247,7 +293,7 @@ function appendMessageToDOM(className, text, imgData = null) {
 
     if (className === 'bot-message') {
         contentHTML += `<br><div class="msg-actions">
-            <button class="speak-btn" onclick="speakText(this.parentNode.parentNode.innerText)">🔊 सुनें</button>
+            <button class="speak-btn" onclick="togglePlayPause(this, '${text.replace(/'/g, "\\'")}')">🔊 सुनें</button>
             <button class="share-btn" onclick="shareSingleMessage('${text.replace(/'/g, "\\'")}')">📤 शेयर</button>
         </div>`;
     }
@@ -275,7 +321,7 @@ async function sendMessage(customText = null) {
     attachedImageBase64 = null;
     document.getElementById('image-input').value = "";
 
-    chatHistory.push({ role: 'user', text: text, img: currentImg });
+    chatHistory.push({ role: 'user', text: text || "[रिपोर्ट]", img: currentImg });
 
     const chatContainer = document.getElementById('chat-container');
     const botDiv = document.createElement('div');
@@ -310,15 +356,15 @@ async function sendMessage(customText = null) {
             const reply = data.candidates[0].content.parts[0].text;
             
             botDiv.innerHTML = reply.replace(/\n/g, '<br>') + `<br><div class="msg-actions">
-                <button class="speak-btn" onclick="speakText(this.parentNode.parentNode.innerText)">🔊 सुनें</button>
+                <button class="speak-btn" onclick="togglePlayPause(this, '${reply.replace(/'/g, "\\'")}')">🔊 सुनें</button>
                 <button class="share-btn" onclick="shareSingleMessage('${reply.replace(/'/g, "\\'")}')">📤 शेयर</button>
             </div>`;
 
             chatHistory.push({ role: 'model', text: reply, img: null });
-            localStorage.setItem('upchar_hub_history_v8', JSON.stringify(chatHistory));
+            localStorage.setItem('upchar_hub_history_v9', JSON.stringify(chatHistory));
 
             if (document.getElementById('auto-speak-toggle').checked) {
-                speakText(reply);
+                playSpeech(reply, botDiv.querySelector('.speak-btn'));
             }
         } else if (data.error) {
             botDiv.textContent = "एरर: " + (data.error.message || "कृपया अपनी API Key की जाँच करें।");
@@ -338,12 +384,68 @@ function handleKeyPress(event) {
     }
 }
 
-function speakText(text) {
+// Play / Pause Audio Toggle Functionality
+function togglePlayPause(btn, text) {
+    if (!('speechSynthesis' in window)) {
+        alert("आपका ब्राउज़र आवाज़ सपोर्ट नहीं करता है।");
+        return;
+    }
+
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (window.activeSpeakBtn === btn) {
+            btn.innerHTML = "🔊 सुनें";
+            window.activeSpeakBtn = null;
+            return;
+        }
+    }
+
+    if (window.activeSpeakBtn && window.activeSpeakBtn !== btn) {
+        window.activeSpeakBtn.innerHTML = "🔊 सुनें";
+    }
+
+    const cleanText = text.replace(/🔊 सुनें/g, '').replace(/📤 शेयर/g, '').replace(/🚨 आपातकाल में 108\/102 डायल करें/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'hi-IN';
+
+    utterance.onstart = function() {
+        btn.innerHTML = "⏸️ रोकें";
+        window.activeSpeakBtn = btn;
+    };
+
+    utterance.onend = function() {
+        btn.innerHTML = "🔊 सुनें";
+        window.activeSpeakBtn = null;
+    };
+
+    utterance.onerror = function() {
+        btn.innerHTML = "🔊 सुनें";
+        window.activeSpeakBtn = null;
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function playSpeech(text, btn) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const cleanText = text.replace(/🔊 सुनें/g, '').replace(/📤 शेयर/g, '').replace(/🚨 आपातकाल में 108\/102 डायल करें/g, '');
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = 'hi-IN';
+
+        utterance.onstart = function() {
+            if(btn) {
+                btn.innerHTML = "⏸️ रोकें";
+                window.activeSpeakBtn = btn;
+            }
+        };
+        utterance.onend = function() {
+            if(btn) {
+                btn.innerHTML = "🔊 सुनें";
+                window.activeSpeakBtn = null;
+            }
+        };
+
         window.speechSynthesis.speak(utterance);
     }
 }
@@ -389,9 +491,33 @@ function toggleSpeechRecognition() {
 
 function clearHistory() {
     if (confirm("क्या आप नया चैट शुरू करना चाहते हैं?")) {
-        localStorage.removeItem('upchar_hub_history_v8');
+        localStorage.removeItem('upchar_hub_history_v9');
         location.reload();
     }
+}
+
+function openHistory() {
+    const modal = document.getElementById('history-modal');
+    const listContainer = document.getElementById('history-list');
+    listContainer.innerHTML = '';
+
+    if (chatHistory.length === 0) {
+        listContainer.innerHTML = '<p style="color:#666; text-align:center;">कोई पुराना इतिहास उपलब्ध नहीं है।</p>';
+    } else {
+        chatHistory.forEach((item, index) => {
+            if(item.role === 'user') {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<b>प्रश्न ${index+1}:</b> ${item.text.substring(0, 50)}...`;
+                listContainer.appendChild(div);
+            }
+        });
+    }
+    modal.style.display = 'flex';
+}
+
+function closeHistory() {
+    document.getElementById('history-modal').style.display = 'none';
 }
 
 function shareSingleMessage(text) {
